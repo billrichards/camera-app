@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Camera App</h1>
+        
+        <div class="camera-container">
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas" style="display: none;"></canvas>
+            
+            <div class="controls">
+                <select id="cameraSelect" class="control">
+                    <option value="">Select Camera</option>
+                </select>
+                <button id="startButton" class="control">Start Camera</button>
+                <button id="captureButton" class="control" disabled>Take Photo</button>
+                <button id="recordButton" class="control" disabled>Start Recording</button>
+                <button id="stopButton" class="control" disabled>Stop Recording</button>
+            </div>
+        </div>
+        
+        <div class="gallery">
+            <h2>Gallery</h2>
+            <div id="galleryItems" class="gallery-items">
+                <!-- Captured images will appear here -->
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
