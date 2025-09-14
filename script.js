@@ -104,12 +104,24 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!stream) return;
         
         recordedChunks = [];
-        const options = { mimeType: 'video/webm;codecs=vp9' };
+        // Try to use mp4 format for better compatibility
+        const options = {
+            mimeType: 'video/webm;codecs=vp9,opus',
+            videoBitsPerSecond: 2500000 // 2.5Mbps
+        };
+        
+        // Fallback to default if the preferred mimeType is not supported
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+            console.log('Preferred mimeType not supported, using default');
+            options.mimeType = ''; // Let the browser choose the best option
+        }
         
         try {
             mediaRecorder = new MediaRecorder(stream, options);
+            console.log('Using mimeType:', mediaRecorder.mimeType);
         } catch (e) {
             console.error('Exception while creating MediaRecorder:', e);
+            alert('Error initializing video recording. Please try a different browser or camera.');
             return;
         }
         
@@ -141,17 +153,27 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // If recording has stopped, process the recorded data
             if (!isRecording) {
-                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                const blob = new Blob(recordedChunks, { type: 'video/mp4; codecs=avc1.42E01E' });
                 const videoUrl = URL.createObjectURL(blob);
-                addToGallery(videoUrl, 'video');
+                
+                // Create a download link for better browser compatibility
+                const a = document.createElement('a');
+                a.href = videoUrl;
+                a.download = `recording-${new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-')}.mp4`;
+                
+                // Add to gallery with the video element and download link
+                addToGallery(videoUrl, 'video', a.download);
             }
         }
     }
     
     // Add media to gallery
-    function addToGallery(url, type) {
+    function addToGallery(url, type, filename = '') {
         const item = document.createElement('div');
         item.className = 'gallery-item';
+        
+        const mediaContainer = document.createElement('div');
+        mediaContainer.className = 'media-container';
         
         const mediaElement = type === 'image' 
             ? document.createElement('img') 
@@ -160,14 +182,50 @@ document.addEventListener('DOMContentLoaded', () => {
         mediaElement.src = url;
         if (type === 'video') {
             mediaElement.controls = true;
+            mediaElement.controlsList = 'nodownload'; // Hide download button to encourage right-click save
+            mediaElement.style.width = '100%';
+            mediaElement.style.height = 'auto';
+            
+            // Add context menu for better video handling
+            mediaElement.oncontextmenu = (e) => {
+                // Allow the default context menu for better browser handling
+                return true;
+            };
+            
+            // Add a download button for better UX
+            const downloadBtn = document.createElement('button');
+            downloadBtn.className = 'download-btn';
+            downloadBtn.title = 'Download Video';
+            downloadBtn.innerHTML = '↓';
+            downloadBtn.onclick = (e) => {
+                e.stopPropagation();
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename || `video-${Date.now()}.mp4`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+            
+            mediaContainer.appendChild(downloadBtn);
         }
+        
+        mediaContainer.appendChild(mediaElement);
         
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'delete-btn';
+        deleteBtn.title = 'Delete';
         deleteBtn.innerHTML = '×';
-        deleteBtn.onclick = () => item.remove();
+        deleteBtn.onclick = (e) => {
+            e.stopPropagation();
+            item.remove();
+            // Revoke the object URL to free up memory
+            if (type === 'video') {
+                URL.revokeObjectURL(url);
+            }
+        };
         
-        item.appendChild(mediaElement);
+        item.appendChild(mediaContainer);
         item.appendChild(deleteBtn);
         
         // Add to the beginning of the gallery
